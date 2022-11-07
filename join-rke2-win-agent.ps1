@@ -7,6 +7,8 @@
     Server IP of Primary server where rke2 is already installed and the worker will join.`
 .Parameter Token
     Token of Primary server.`
+.Parameter PublicIP
+    Public IP of Agent server.`
 .Parameter Version
     Version of rke2 to download from github.`
 .Parameter Commit
@@ -26,10 +28,10 @@ param (
     $ServerIP,
     [Parameter()]
     [String]
-    $Version,
+    $Token,
     [Parameter()]
     [String]
-    $Token,
+    $Version,
     [Parameter()]
     [String]
     $Commit
@@ -60,13 +62,16 @@ function Set-Version() {
 
 function Enable-Features() {
     Enable-WindowsOptionalFeature -Online -FeatureName Containers -All
+    Restart-Computer -Wait -For PowerShell -Timeout 300 -Delay 2
 }
 
 function Setup-Config(){
     Write-InfoLog "Creating rke2 directory..."
     New-Item -Type Directory c:/etc/rancher/rke2 -Force
+    Write-InfoLog "Fetch public IP..."
+    $publicIP = (Invoke-WebRequest -uri "https://api.ipify.org/").Content.Trim()
     Write-InfoLog "Setting up rke2 config.yaml file..."
-    Set-Content -Path c:/etc/rancher/rke2/config.yaml -Value "server: https://$($ServerIP):9345`ntoken: $Token`n"
+    Set-Content -Path c:/etc/rancher/rke2/config.yaml -Value "server: https://$($ServerIP):9345`ntoken: $Token`nnode-external-ip: $publicIP`n"
     Get-Content -Path c:/etc/rancher/rke2/config.yaml
 }
 
